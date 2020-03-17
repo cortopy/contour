@@ -289,7 +289,7 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	g.Add(isw.Start)
 
 	// step 12. register an informer to watch envoy's service.
-	ssw := &k8s.ServiceStatusLoadbalancerWatcher{
+	ssw := &k8s.ServiceStatusLoadBalancerWatcher{
 		ServiceName: "envoy",
 		LBStatus:    isw.lbStatus,
 	}
@@ -297,7 +297,6 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	factory.Core().V1().Services().Informer().AddEventHandler(ssw)
 	g.Add(startInformer(factory, log.WithField("context", "serviceStatusLoadBalancerWatcher")))
 
-	// step 13. create grpc handler and register with workgroup.
 	g.Add(func(stop <-chan struct{}) error {
 		log := log.WithField("context", "grpc")
 
