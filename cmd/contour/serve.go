@@ -111,6 +111,8 @@ func registerServe(app *kingpin.Application) (*kingpin.CmdClause, *serveContext)
 	serve.Flag("envoy-service-https-address", "Kubernetes Service address for HTTPS requests.").StringVar(&ctx.httpsAddr)
 	serve.Flag("envoy-service-http-port", "Kubernetes Service port for HTTP requests.").IntVar(&ctx.httpPort)
 	serve.Flag("envoy-service-https-port", "Kubernetes Service port for HTTPS requests.").IntVar(&ctx.httpsPort)
+	serve.Flag("envoy-service-name", "Envoy Service Name.").StringVar(&ctx.envoyServiceName)
+	serve.Flag("envoy-service-namespace", "Envoy Service Namespace.").StringVar(&ctx.envoyServiceNamespace)
 	serve.Flag("use-proxy-protocol", "Use PROXY protocol for all listeners.").BoolVar(&ctx.useProxyProto)
 
 	serve.Flag("accesslog-format", "Format for Envoy access logs.").StringVar(&ctx.AccessLogFormat)
@@ -290,10 +292,10 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// step 12. register an informer to watch envoy's service.
 	ssw := &k8s.ServiceStatusLoadBalancerWatcher{
-		ServiceName: "envoy",
+		ServiceName: ctx.envoyServiceName,
 		LBStatus:    isw.lbStatus,
 	}
-	factory := clients.NewInformerFactoryForNamespace("projectcontour")
+	factory := clients.NewInformerFactoryForNamespace(ctx.envoyServiceNamespace)
 	factory.Core().V1().Services().Informer().AddEventHandler(ssw)
 	g.Add(startInformer(factory, log.WithField("context", "serviceStatusLoadBalancerWatcher")))
 
