@@ -54,9 +54,9 @@ func (isw *ingressStatusWriter) Start(stop <-chan struct{}) error {
 		isw.log.Info("elected leader")
 	}
 
+	var shutdown chan struct{}
+	var stopping sync.WaitGroup
 	for {
-		var shutdown chan struct{}
-		var stopping sync.WaitGroup
 		select {
 		case <-stop:
 			// stop existing informer and shut down
@@ -75,27 +75,20 @@ func (isw *ingressStatusWriter) Start(stop <-chan struct{}) error {
 			// create informer for the new LoadBalancerStatus
 			factory := isw.clients.NewInformerFactory()
 			inf := factory.Networking().V1beta1().Ingresses().Informer()
+			log := isw.log.WithField("context", "IngressStatusLoadBalancerUpdater")
 			inf.AddEventHandler(&k8s.StatusLoadBalancerUpdater{
 				Client: isw.clients.ClientSet(),
-				Logger: isw.log.WithField("context", "statusLoadBalancerUpdater"),
+				Logger: log,
 				Status: lbs,
 			})
 
 			shutdown = make(chan struct{})
 			stopping.Add(1)
+			fn := startInformer(factory, log)
 			go func() {
-				isw.log.Info("starting informer")
 				defer stopping.Done()
-				defer isw.log.Info("stopping informer")
-				factory.Start(shutdown)
+				fn(shutdown)
 			}()
 		}
 	}
-}
-
-type serviceStatusWatcher struct {
-	name, namespace string
-	log             logrus.FieldLogger
-	clients         *k8s.Clients
-	lbStatus        chan v1.LoadBalancerStatus
 }

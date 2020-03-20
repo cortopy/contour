@@ -106,8 +106,5 @@ func (s *ServiceStatusLoadBalancerWatcher) OnDelete(obj interface{}) {
 }
 
 func (s *ServiceStatusLoadBalancerWatcher) notify(lbstatus v1.LoadBalancerStatus) {
-	select {
-	case s.LBStatus <- lbstatus:
-		// use non blocking send to avoid blocking informer on shutdown
-	}
+	s.LBStatus <- lbstatus
 }
